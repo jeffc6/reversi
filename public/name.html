@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Required meta tags -->
+    <title>Enter your user name for Reversi</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -10,6 +10,13 @@
         background-image: url("assets/images/green.png");
       }
     </style>
+
+    <script>
+      function submitForm(){
+        var username = $('#username').val();
+        window.location.href = 'lobby.html?usernmae='+username;      
+    }
+    </script>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
@@ -20,9 +27,20 @@
     <div class="container-fluid text-center">
       <div class="row" id="header-row">
         <div class="col">
-          <h2>This is the name page</h2>
+          <h2>Enter Your User Name</h2>
         </div>
       </div>
+      <dive class="row">
+        <div class="col">
+          <form onsubmit='submitForm(); return false;' class='form-inline'>
+            <div class='form-group'>
+              <label for='username' class='col-form-label sr-only'>Enter your user name</label>
+              <input class='form-control' type='text' value='' id='username' placeholder="Enter your user name"/>
+            </div>
+            <button type='submit' class='btn btn-default btn-primary'>Done</done>
+          </form>
+         </div> 
+       </div>
     </div>
 
     <!-- Optional JavaScript -->
