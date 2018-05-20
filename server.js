@@ -105,7 +105,7 @@ io.sockets.on('connection', function (socket) {
 													});
 				return;
 			}
-
+			socket.join(room);
 			var roomObject = io.sockets.adapter.rooms[room];
 			if(('undefined' === typeof roomObject) || !roomObject){
 				var error_message = 'join_room couldn\'t create a room (internal error), command aborted';
@@ -121,7 +121,7 @@ io.sockets.on('connection', function (socket) {
 									result: 'success',
 									room: room,
 									username: username,
-									membership: (numClients + 1),
+									membership: (numClients + 1)
 								};
 			io.sockets.in(room).emit('join_room_response',success_data);
 			log('Room ' + room + ' was just joined by' + username);
