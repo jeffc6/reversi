@@ -292,7 +292,7 @@ io.sockets.on('connection', function (socket) {
 
 			/*Check that the message can be traced to a username */
 			var username = players[socket.id].username;
-			if(( 'undefined' === typeof username) || !username) {
+			if(('undefined' === typeof username) || !username) {
 				var error_message = 'invite can\'t identify who sent the message';
 				log(error_message);
 				socket.emit('invite_response',  {
@@ -302,7 +302,7 @@ io.sockets.on('connection', function (socket) {
 				return;
 			}
 			var requested_user = payload.requested_user;
-			if(( 'undefined' === typeof requested_user) || !requested_user) {
+			if(('undefined' === typeof requested_user) || !requested_user) {
 				var error_message = 'invite didn\'t specify a requested_user, command aborted';
 				log(error_message);
 				socket.emit('invite_response',  {
