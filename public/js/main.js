@@ -75,6 +75,7 @@ socket.on('join_room_response', function(payload){ // Join room response
 		
 	}
 	else {
+		uninvite(payload.socket_id);
 		var buttonC = makeInviteButton(payload.socket_id);
 		$('.socket_'+payload.socket_id+' button' ).replaceWith(buttonC);
 		dom_element.slideDown(1000);
@@ -176,7 +177,7 @@ socket.on('invited', function(payload){ // invited
 		alert(payload.message);
 		return;
 	}
-	var newNode = makePlayButton();
+	var newNode = makePlayButton(payload.socket_id);
 	$('.socket_'+payload.socket_id+' button').replaceWith(newNode);
 });
 
@@ -207,23 +208,48 @@ socket.on('uninvited', function(payload){ // uninvited
 });
 
 
+function game_start(who) { // Game start message to the server
+	var payload = {};
+	payload.requested_user = who;
+	
+	console.log('*** Client Log Message: \'game_start\' payload: '+JSON.stringify(payload));
+	socket.emit('game_start', payload);
+}
+
+socket.on('game_start_response', function(payload){ // engageg
+	if (payload.result === 'fail'){
+		alert(payload.message);
+		return;
+	}
+
+	var newNode = makeEngagedButton(payload.socket_id);
+	$('.socket_'+payload.socket_id+' button').replaceWith(newNode);
+
+	/*jump to a new page*/
+	window.location.href = 'game.html?username='+username+'&game_id='+payload.game_id;
+
+});
+
+function send_message(){ // setting up the message variable with content
+	var payload = {};
+	payload.room = chat_room;
+	payload.message = $('#send_message_holder').val();
+	console.log('*** Client Log Message: \'send_message\' payload: '+JSON.stringify(payload));
+	socket.emit('send_message', payload);
+}
+
+
 socket.on('send_message_response', function(payload){ // Send message response
 	if (payload.result == 'fail'){
 		alert(payload.message);
 		return;
 	}
-	$('#messages').append('<p><b>'+payload.username+' says:</b> '+payload.message+'</p>');
+	var newHTML = '<p><b>'+payload.username+' says:</b> '+payload.message+'</p>';
+	var newNode =$(newHTML);
+	newNode.hide();
+	$('#messages').append(newNode);
+	newNode.slideDown(1000);
 });
-
-
-function send_message(){ // setting up the message variable with content
-	var payload = {};
-	payload.room = chat_room;
-	payload.username = username;
-	payload.message = $('#send_message_holder').val();
-	console.log('*** Client Log Message: \'send_message\' payload: '+JSON.stringify(payload));
-	socket.emit('send_message', payload);
-}
 
 
 function makeInviteButton(socket_id) { // make an invite button
@@ -248,15 +274,18 @@ function makeInvitedButton(socket_id) { // make an invited button
 
 }
 
-function makePlayButton() { // make a play button
+function makePlayButton(socket_id) { // make a play button
 	
 	var newHTML = '<button type=\'button\' class=\'btn btn-success\'>Play</button>';
 	var newNode = $(newHTML);
+	newNode.click(function(){
+		game_start(socket_id);
+	});
 	return(newNode);
 
 }
 
-function makeEngageButton() { // make a engage button
+function makeEngagedButton() { // make a engage button
 	
 	var newHTML = '<button type=\'button\' class=\'btn btn-danger\'>Engaged</button>';
 	var newNode = $(newHTML);
