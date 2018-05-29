@@ -167,7 +167,7 @@ socket.on('invite_response', function(payload){ // invite_response
 		alert(payload.message);
 		return;
 	}
-	var newNode = makeInvitedButton();
+	var newNode = makeInvitedButton(payload.socket_id);
 	$('.socket_'+payload.socket_id+' button').replaceWith(newNode);
 });
 
@@ -177,6 +177,32 @@ socket.on('invited', function(payload){ // invited
 		return;
 	}
 	var newNode = makePlayButton();
+	$('.socket_'+payload.socket_id+' button').replaceWith(newNode);
+});
+
+function uninvite(who) { // Uninvite someone
+	var payload = {};
+	payload.requested_user = who;
+	
+	console.log('*** Client Log Message: "uninvite" payload: '+JSON.stringify(payload));
+	socket.emit('uninvite', payload);
+}
+
+socket.on('uninvite_response', function(payload){ // uninvite_response
+	if (payload.result === 'fail'){
+		alert(payload.message);
+		return;
+	}
+	var newNode = makeInviteButton(payload.socket_id);
+	$('.socket_'+payload.socket_id+' button').replaceWith(newNode);
+});
+
+socket.on('uninvited', function(payload){ // uninvited
+	if (payload.result === 'fail'){
+		alert(payload.message);
+		return;
+	}
+	var newNode = makeInviteButton(payload.socket_id);
 	$('.socket_'+payload.socket_id+' button').replaceWith(newNode);
 });
 
@@ -211,10 +237,13 @@ function makeInviteButton(socket_id) { // make an invite button
 
 }
 
-function makeInvitedButton() { // make an invited button
+function makeInvitedButton(socket_id) { // make an invited button
 	
 	var newHTML = '<button type=\'button\' class=\'btn btn-primary\'>Invited</button>';
 	var newNode = $(newHTML);
+	newNode.click(function(){
+		uninvite(socket_id);
+	});
 	return(newNode);
 
 }
