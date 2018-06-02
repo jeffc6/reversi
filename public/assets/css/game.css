@@ -18,6 +18,10 @@ body {
  
  #messages p{
  	margin: 0px;
- 	
 
  }
+
+td.hovered_over:hover {
+	background:url('../images/hover.gif');
+	backgound-size: 100% 100%;
+}
