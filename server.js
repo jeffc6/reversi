@@ -540,7 +540,7 @@ io.sockets.on('connection', function (socket) {
 			{ 
 				'row': 0-7 the ow to play the token on
 				'column': 0-7 the coloum to play the token on
-				'colo': 'white' o 'black'
+				'color': 'white' or 'black'
 			}
 			
 			if successfull a successmesage will be followed by a game_update message
@@ -656,7 +656,7 @@ io.sockets.on('connection', function (socket) {
 			socket.emit('play_token_response',success_data);
 
 			/* Execute the move */
-			if(color = 'white'){
+			if(color == 'white'){
 				game.board[row][column] = 'w';
 				game.whose_turn = 'black';
 			}

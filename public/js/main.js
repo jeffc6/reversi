@@ -346,7 +346,7 @@ socket.on('game_update',function(payload){
 		/* Something weird is going on, like three people playing at once */
 		/* end client back to the lobby */
 		window.location.href = 'lobby.html?username='+username;
-		retun;
+		return;
 	}
 
 	$('#my_color').html('<h3 id="my_color">I am '+my_color+'</h3>');
