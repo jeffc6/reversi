@@ -539,7 +539,7 @@ io.sockets.on('connection', function (socket) {
 		/* payload:
 			{ 
 				'row': 0-7 the ow to play the token on
-				'column': 0-7 the coloum to play the token on
+				'column': 0-7 the column to play the token on
 				'color': 'white' or 'black'
 			}
 			
@@ -648,6 +648,33 @@ io.sockets.on('connection', function (socket) {
 													});
 				return;
 			}
+		    
+		    /** if the current attempt at playing a token is out of turn then error*/
+		    if(color !== game.whose_turn){
+		      var error_message = 'play_token message: played out of turn';
+		      log(error_message);
+		      socket.emit('play_token_response', {
+		        result: 'fail',
+		        message: error_message
+		      });
+		      return;
+		    }
+
+		    /* if the wrong socket is playing a color */
+		    if(
+		      ((game.whose_turn === 'white') && (game.player_white.socket != socket.id)) ||
+		      ((game.whose_turn === 'black') && (game.player_black.socket != socket.id))
+		      ){
+		      var error_message = 'play_token message: turn played by wrong player';
+		      log(error_message);
+		      socket.emit('play_token_response', {
+		        result: 'fail',
+		        message: error_message
+		      });
+		    }
+
+
+			/* Send response */
 
 			var success_data = {
 					result: 'success'
@@ -656,22 +683,25 @@ io.sockets.on('connection', function (socket) {
 			socket.emit('play_token_response',success_data);
 
 			/* Execute the move */
-			if(color == 'white'){
-				game.board[row][column] = 'w';
-				game.whose_turn = 'black';
-			}
-			else if(color == 'black'){
-				game.board[row][column] = 'b';
-				game.whose_turn = 'white';
-			}
+		    if (color == 'white') {
+		      game.board[row][column] = 'w';
+		      flip_board('w',row,column,game.board);
+		      game.whose_turn = 'black';
+		      game.legal_moves = calculate_valid_moves('b',game.board);
+		    }
+		    else if (color == 'black') {
+		      game.board[row][column] = 'b';
+		      flip_board('b',row,column,game.board);      
+		      game.whose_turn = 'white';
+		      game.legal_moves = calculate_valid_moves('w',game.board);
+		      
+		    }
+		    var d = new Date();
+		    game.last_move_time = d.getTime();
 
-			var d = new Date ();
-			game.last_move_time = d.getTime();
-
-			send_game_update(socket,game_id,'played a token');
-
+		    send_game_update(socket, game_id, 'played a token');
+		  });
 		});
-});
 
 
 /*****************************************/
@@ -690,7 +720,7 @@ function create_new_game(){
 
 	var d = new Date();
 	new_game.last_move_time = d.getTime();
-	new_game.whose_turn ='white';
+	new_game.whose_turn ='black';
 	new_game.board = [
 						[' ',' ',' ',' ',' ',' ',' ',' ',],
 						[' ',' ',' ',' ',' ',' ',' ',' ',],
@@ -701,9 +731,135 @@ function create_new_game(){
 						[' ',' ',' ',' ',' ',' ',' ',' ',],
 						[' ',' ',' ',' ',' ',' ',' ',' ',],
 					];
-
+	new_game.legal_moves = calculate_valid_moves('b',new_game.board);
+    console.log('legal moves available '+JSON.stringify(new_game.legal_moves));				
 	return new_game;
 
+}
+
+/** check if there is a color 'who' starting at (r,c)  or anywhere further by adding deltaRow and deltaCol to (r,c) */
+function check_line_match(who,deltaRow,deltaCol,r,c,board){
+  if(board[r][c] === who){
+    return true;
+  }
+  if(board[r][c] === ' '){
+    return false;
+  }
+  if( (r+deltaRow < 0) || (r+deltaRow > 7) ){
+    return false;
+  }
+  if( (c+deltaCol < 0) || (c+deltaCol > 7) ){
+    return false;
+  }
+  return check_line_match(who,deltaRow,deltaCol,r+deltaRow,c+deltaCol,board);
+}
+
+/** Function to check if a move is valid and return True or False 
+ * Check if position at r,c contains the opposite of 'who' on the board and if line indicated by adding deltaRow to r eventually ends in the who color*/
+function valid_move(who,deltaRow,deltaCol,r,c,board){
+  var other;
+  if(who === 'b'){
+    other = 'w';
+  }
+  else if(who === 'w'){
+    other = 'b';
+  }
+  else{
+    console.log('Houston we have a color problem: '+who);
+    return false;
+  }
+
+  if((r+deltaRow < 0) || (r+deltaRow > 7)){
+    return false;
+  }
+  if((c+deltaCol < 0) || (c+deltaCol > 7)){
+    return false;
+  }
+  if((r+deltaRow+deltaRow < 0) || (r+deltaRow+deltaRow > 7)){
+    return false;
+  }
+  if((c+deltaCol+deltaCol < 0) || (c+deltaCol+deltaCol > 7)){
+    return false;
+  }
+  if(board[r+deltaRow][c+deltaCol] != other){
+    return false;
+  }
+  return check_line_match(who,deltaRow,deltaCol,r+deltaRow+deltaRow,c+deltaCol+deltaCol,board);
+  
+
+}
+
+function calculate_valid_moves(who,board){
+  var valid = [
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
+  ];
+  var nw,nn,ne,ee,ww,sw,ss,se;
+  for(var row = 0; row < 8; row++){
+      for(var column= 0; column < 8; column++){
+        if(board[row][column] === ' '){ 
+          nw = valid_move(who,-1,-1,row,column,board);
+          nn = valid_move(who,-1, 0,row,column,board);
+          ne = valid_move(who,-1, 1,row,column,board);
+
+          ee = valid_move(who, 0, 1,row,column,board);
+          ww = valid_move(who, 0,-1,row,column,board);
+
+          sw = valid_move(who, 1,-1,row,column,board);
+          ss = valid_move(who, 1, 0,row,column,board);
+          se = valid_move(who, 1, 1,row,column,board);
+          
+          if(nw || nn || ne || ee || ww || sw || ss || se){
+            valid[row][column] = who;
+          }
+        }
+      }
+  }
+  return valid;
+}
+
+function flip_line(who,deltaRow,deltaCol,row,col,board){
+  if((row+deltaRow < 0) || (row+deltaRow > 7)){
+    return false;
+  }
+  if((col+deltaCol < 0) || (col+deltaCol > 7)){
+    return false;
+  }
+  if(board[row+deltaRow][col+deltaCol] === ' '){
+    return false;
+  }
+  if(board[row+deltaRow][col+deltaCol] === who){
+    return true;
+  }
+  else{
+    if(flip_line(who,deltaRow,deltaCol,row+deltaRow,col+deltaCol,board)){
+      board[row+deltaRow][col+deltaCol]= who;
+      return true;
+    }
+    else{
+      return false;
+    }
+  }
+}
+
+function flip_board(who,row,column,board){
+  console.log('initiating board flip for player: '+who);
+  flip_line(who,-1,-1,row,column,board);
+  flip_line(who,-1, 0,row,column,board);
+  flip_line(who,-1, 1,row,column,board);
+
+  flip_line(who, 0, 1,row,column,board);
+  flip_line(who, 0,-1,row,column,board);
+
+  flip_line(who, 1,-1,row,column,board);
+  flip_line(who, 1, 0,row,column,board);
+  flip_line(who, 1, 1,row,column,board);
 }
 
 function send_game_update(socket, game_id, message){
@@ -781,23 +937,37 @@ function send_game_update(socket, game_id, message){
 
 	var row, column;
 	var count = 0;
+    var black = 0;
+    var white = 0;
 	
-	for (row=0;row<8;row++){
-		for (column=0; column<8;column++){
-			if (games[game_id].board[row][column] !== ' ') {
-				count++;
-			}
+    for (row = 0; row < 8; row++) {
+      for (column = 0; column < 8; column++) {
+        if (games[game_id].legal_moves[row][column] != ' ') {
+          count++;
+        }
+        if (games[game_id].board[row][column] === 'b') {
+          black++;
+        }
+        if (games[game_id].board[row][column] === 'w') {
+          white++;
+	  		}
 		}
 	}
 	
 	
-	
-	if (count === 64) {
+	  if(count == 0){
 		/* send a game over message */
+		var winner = 'tie game';
+	    if(black > white){
+	      winner = 'black';
+	    }
+	    if(white > black){
+	      winner = 'white';
+	    }
 		var success_data = {
 			result:'success',
 			game: games[game_id],
-			who_won: 'everyone',
+			who_won: winner,
 			game_id: game_id
 		};
 		io.in(game_id).emit('game_over', success_data);
